@@ -1,6 +1,6 @@
 - name: "FetchMetadata"
   description: "Fetches plugin metadata and stores in /target/pluginMetadata.json"
-  fqcn: "io.jenkins.tools.pluginmodernizer.core.extractor.MetadataCollector"
+  fqcn: "io.jenkins.tools.pluginmodernizer.recipes.FetchMetadata"
   artifactCoordinates: "io.jenkins.plugin-modernizer:plugin-modernizer-core:${project.version}"
 - name: "AddPluginsBom"
   description: "Adds Jenkins plugins BOM at the latest release if the project depends on any managed versions or an outdated BOM is present."

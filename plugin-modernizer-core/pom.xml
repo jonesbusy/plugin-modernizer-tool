@@ -67,6 +67,14 @@
         </plugins>
         <resources>
             <resource>
+                <directory>src/main/resources/META-INF/rewrite</directory>
+                <includes>
+                    <include>*.yml</include>
+                </includes>
+                <filtering>false</filtering>
+                <targetPath>META-INF/rewrite</targetPath>
+            </resource>
+            <resource>
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>recipe_data.yaml</include>
