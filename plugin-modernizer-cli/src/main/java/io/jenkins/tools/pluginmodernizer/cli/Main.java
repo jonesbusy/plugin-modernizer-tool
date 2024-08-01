@@ -104,6 +104,11 @@ public class Main implements Runnable {
     public Path mavenHome = Settings.DEFAULT_MAVEN_HOME;
 
     @Option(
+            names = {"-t", "--threads"},
+            description = "Number of threads to use.")
+    public int threads = Settings.DEFAULT_THREAD_COUNT;
+
+    @Option(
             names = {"-l", "--list-recipes"},
             help = true,
             description = "List available recipes.")

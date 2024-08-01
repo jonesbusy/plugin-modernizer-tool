@@ -352,7 +352,9 @@ public class GHService {
             try {
                 git.checkout().setCreateBranch(true).setName(BRANCH_NAME).call();
             } catch (RefAlreadyExistsException e) {
-                String defaultBranch = plugin.getRemoteForkRepository(this).getDefaultBranch();
+                String defaultBranch = config.isDryRun()
+                        ? plugin.getRemoteRepository(this).getDefaultBranch()
+                        : plugin.getRemoteForkRepository(this).getDefaultBranch();
                 LOG.info("Branch already exists. Checking out the branch");
                 git.checkout().setName(BRANCH_NAME).call();
                 git.reset()

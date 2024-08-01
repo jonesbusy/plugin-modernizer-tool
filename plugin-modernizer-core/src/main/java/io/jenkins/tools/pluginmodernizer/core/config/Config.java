@@ -13,6 +13,7 @@ public class Config {
     private final URL jenkinsUpdateCenter;
     private final Path cachePath;
     private final Path mavenHome;
+    private final int threads;
     private final boolean dryRun;
     private final boolean skipPush;
     private final boolean skipPullRequest;
@@ -27,6 +28,7 @@ public class Config {
             URL jenkinsUpdateCenter,
             Path cachePath,
             Path mavenHome,
+            int threads,
             boolean dryRun,
             boolean skipPush,
             boolean skipPullRequest,
@@ -38,6 +40,7 @@ public class Config {
         this.jenkinsUpdateCenter = jenkinsUpdateCenter;
         this.cachePath = cachePath;
         this.mavenHome = mavenHome;
+        this.threads = threads;
         this.dryRun = dryRun;
         this.skipPush = skipPush;
         this.skipPullRequest = skipPullRequest;
@@ -72,6 +75,10 @@ public class Config {
         return mavenHome;
     }
 
+    public int getThreads() {
+        return threads;
+    }
+
     public boolean isDryRun() {
         return dryRun;
     }
@@ -100,6 +107,7 @@ public class Config {
         private URL jenkinsUpdateCenter = Settings.DEFAULT_UPDATE_CENTER_URL;
         private Path cachePath = Settings.DEFAULT_CACHE_PATH;
         private Path mavenHome = Settings.DEFAULT_MAVEN_HOME;
+        private int threads = Settings.DEFAULT_THREAD_COUNT;
         private boolean dryRun = false;
         private boolean skipPush = false;
         private boolean skipPullRequest = false;
@@ -146,6 +154,11 @@ public class Config {
             return this;
         }
 
+        public Builder withThreads(int threads) {
+            this.threads = threads;
+            return this;
+        }
+
         public Builder withDryRun(boolean dryRun) {
             this.dryRun = dryRun;
             return this;
@@ -175,6 +188,7 @@ public class Config {
                     jenkinsUpdateCenter,
                     cachePath,
                     mavenHome,
+                    threads,
                     dryRun,
                     skipPush,
                     skipPullRequest,

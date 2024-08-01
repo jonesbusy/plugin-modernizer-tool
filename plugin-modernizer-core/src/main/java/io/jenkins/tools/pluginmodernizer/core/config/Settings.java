@@ -23,6 +23,8 @@ public class Settings {
 
     public static final URL DEFAULT_UPDATE_CENTER_URL;
 
+    public static final int DEFAULT_THREAD_COUNT = 4;
+
     public static final Path DEFAULT_CACHE_PATH;
 
     public static final Path DEFAULT_MAVEN_HOME;
