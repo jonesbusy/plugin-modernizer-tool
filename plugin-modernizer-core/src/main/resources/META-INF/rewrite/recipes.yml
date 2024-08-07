@@ -91,3 +91,14 @@ name: io.jenkins.tools.pluginmodernizer.UpgradeToJava17
 description: Migrate from Java 8 to Java 11
 recipeList:
   - org.openrewrite.java.migrate.UpgradeToJava17
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.jenkins.tools.pluginmodernizer.CommentOutSecurityScanJavaVersion
+description: Comment security scan java version in YAML
+recipeList:
+  - org.openrewrite.yaml.ChangePropertyValue:
+      propertyKey: jobs.security-scan.with.java-version
+      newValue: 21
+  - org.openrewrite.yaml.CommentOutProperty:
+      propertyKey: jobs.security-scan.with.java-version
+      commentText: Optionally specify what version of Java to set up for the build, or remove to use a recent default.
