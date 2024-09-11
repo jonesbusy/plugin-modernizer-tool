@@ -1,20 +1,23 @@
 package io.jenkins.tools.pluginmodernizer.core.impl;
 
+import com.google.cloud.tools.jib.api.Containerizer;
+import com.google.cloud.tools.jib.api.Jib;
+import com.google.cloud.tools.jib.api.RegistryImage;
+import com.google.cloud.tools.jib.api.buildplan.AbsoluteUnixPath;
+import com.google.cloud.tools.jib.api.buildplan.ImageFormat;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.jenkins.tools.pluginmodernizer.core.config.Config;
-import io.jenkins.tools.pluginmodernizer.core.config.Settings;
 import io.jenkins.tools.pluginmodernizer.core.extractor.PluginMetadata;
 import io.jenkins.tools.pluginmodernizer.core.github.GHService;
 import io.jenkins.tools.pluginmodernizer.core.model.JDK;
+import io.jenkins.tools.pluginmodernizer.core.model.ModernizerException;
 import io.jenkins.tools.pluginmodernizer.core.model.Plugin;
 import io.jenkins.tools.pluginmodernizer.core.model.PluginProcessingException;
 import io.jenkins.tools.pluginmodernizer.core.utils.HealthScoreUtils;
 import io.jenkins.tools.pluginmodernizer.core.utils.JdkFetcher;
-import io.jenkins.tools.pluginmodernizer.core.utils.PluginVersionUtils;
 import io.jenkins.tools.pluginmodernizer.core.utils.UpdateCenterUtils;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.stream.Collectors;
-import org.openrewrite.Recipe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,34 +52,21 @@ public class PluginModernizer {
      * Entry point to start the plugin modernization process
      */
     public void start() {
+        try {
+            Jib.fromScratch()
+                    .setFormat(ImageFormat.OCI)
+                    .addLayer(List.of(Paths.get("pom.xml")), AbsoluteUnixPath.get("/"))
+                    .containerize(
+                            Containerizer.to(RegistryImage.named(System.getenv("OCI_REGISTRY") + "/library/jib:latest")
+                                    .addCredential(System.getenv("OCI_USERNAME"), System.getenv("OCI_PASSWORD"))));
 
-        // Setup
-        this.ghService.connect();
-        if (config.isRemoveLocalData()) {
-            cacheManager.wipe();
+        } catch (Exception e) {
+            throw new ModernizerException("Error while building image", e);
         }
-        cacheManager.init();
 
-        // Debug config
-        LOG.debug("Plugins: {}", config.getPlugins());
-        LOG.debug(
-                "Recipes: {}", config.getRecipes().stream().map(Recipe::getName).collect(Collectors.joining(", ")));
-        LOG.debug("GitHub owner: {}", config.getGithubOwner());
-        LOG.debug("Update Center Url: {}", config.getJenkinsUpdateCenter());
-        LOG.debug("Plugin versions Url: {}", config.getJenkinsPluginVersions());
-        LOG.debug("Plugin Health Score Url: {}", config.getPluginHealthScore());
-        LOG.debug("Cache Path: {}", config.getCachePath());
-        LOG.debug("Dry Run: {}", config.isDryRun());
-        LOG.debug("Skip Push: {}", config.isSkipPush());
-        LOG.debug("Skip Pull Request: {}", config.isSkipPullRequest());
-        LOG.debug("Maven rewrite plugin version: {}", Settings.MAVEN_REWRITE_PLUGIN_VERSION);
-
-        // Fetch plugin versions
-        PluginVersionUtils.get(config, cacheManager);
-
-        List<Plugin> plugins = config.getPlugins();
-        plugins.forEach(this::process);
-        printResults(plugins);
+        // List<Plugin> plugins = config.getPlugins();
+        // plugins.forEach(this::process);
+        // printResults(plugins);
     }
 
     /**
