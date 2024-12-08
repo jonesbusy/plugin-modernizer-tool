@@ -35,13 +35,19 @@ public class PluginModernizer {
     private CacheManager cacheManager;
 
     /**
+     * Validate the configuration
+     */
+    public void validate() {
+        mavenInvoker.validateMavenHome();
+        mavenInvoker.validateMavenVersion();
+    }
+
+    /**
      * Entry point to start the plugin modernization process
      */
     public void start() {
 
-        // Validate maven
-        mavenInvoker.validateMavenHome();
-        mavenInvoker.validateMavenVersion();
+        validate();
 
         // Setup
         this.ghService.connect();

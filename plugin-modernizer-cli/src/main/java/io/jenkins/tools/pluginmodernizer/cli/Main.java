@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
 import org.openrewrite.Recipe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,11 @@ import picocli.CommandLine.Option;
 
 @Command(
         name = "Plugin Modernizer",
+        synopsisSubcommandLabel = "COMMAND",
+        subcommands = {
+            Main.ValidateCommand.class,
+            Main.RunCommand.class,
+        },
         separator = " ",
         helpCommand = true,
         mixinStandardHelpOptions = true,
@@ -39,16 +45,18 @@ public class Main implements Runnable {
     private static Logger LOG = LoggerFactory.getLogger(Main.class);
 
     public static void main(final String[] args) {
-        // Don't show the shutdown message for some args
-        if (!Arrays.asList(args).contains("--version")
-                && !Arrays.asList(args).contains("-v")
-                && !Arrays.asList(args).contains("--list-recipes")
-                && !Arrays.asList(args).contains("-l")
-                && !Arrays.asList(args).contains("--help")
-                && !Arrays.asList(args).contains("-h")) {
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> LOG.info("Plugin Modernizer finished.")));
-        }
-        new CommandLine(new Main()).setOptionsCaseInsensitive(true).execute(args);
+        System.exit(new CommandLine(new Main()).execute(args));
+    }
+
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
+
+    /**
+     * Run without subcommand
+     */
+    @Override
+    public void run() {
+        throw new CommandLine.ParameterException(spec.commandLine(), "Missing required subcommand");
     }
 
     /**
@@ -68,203 +76,252 @@ public class Main implements Runnable {
         private Path pluginFile;
     }
 
-    @CommandLine.ArgGroup(exclusive = true, multiplicity = "1")
-    private PluginOptions pluginOptions;
+    /**
+     * Global options for all commands
+     * TODO: Need cleanup
+     */
+    @Command(
+            synopsisHeading = "%nUsage:%n",
+            descriptionHeading = "%nDescription:%n",
+            parameterListHeading = "%nParameters:%n",
+            optionListHeading = "%nOptions:%n",
+            commandListHeading = "%nCommands:%n")
+    static class GlobalOptions {
 
-    @Option(
-            names = {"-r", "--recipe"},
-            required = true,
-            description = "Recipe to be applied.",
-            converter = RecipeConverter.class)
-    private Recipe recipe;
+        @Option(
+                names = {"-d", "--debug"},
+                description = "Enable debug logging.")
+        public boolean debug;
 
-    @Option(
-            names = {"-g", "--github-owner"},
-            description = "GitHub owner for forked repositories.")
-    private String githubOwner = Settings.GITHUB_OWNER;
+        @Option(
+                names = {"-g", "--github-owner"},
+                description = "GitHub owner for forked repositories.")
+        private String githubOwner = Settings.GITHUB_OWNER;
 
-    @Option(
-            names = {"--github-app-id"},
-            description =
-                    "GitHub App ID. If set you will need to set GH_APP_CLIENT_ID, GH_APP_CLIENT_SECRET, GH_APP_PRIVATE_KEY_FILE as environment variables to use JWT authentication. The app installation must be done on the given github owner (personal or organization).")
-    public Long githubAppId;
+        @Option(
+                names = {"--github-app-id"},
+                description =
+                        "GitHub App ID. If set you will need to set GH_APP_CLIENT_ID, GH_APP_CLIENT_SECRET, GH_APP_PRIVATE_KEY_FILE as environment variables to use JWT authentication. The app installation must be done on the given github owner (personal or organization).")
+        public Long githubAppId;
 
-    @Option(
-            names = {"--github-app-source-installation-id"},
-            description =
-                    "GitHub App Installation ID for the source repositories. If set, the app installation must be done on the given github owner (personal or organization).")
-    public Long githubAppSourceInstallationId;
+        @Option(
+                names = {"--github-app-source-installation-id"},
+                description =
+                        "GitHub App Installation ID for the source repositories. If set, the app installation must be done on the given github owner (personal or organization).")
+        public Long githubAppSourceInstallationId;
 
-    @Option(
-            names = {"--github-app-target-installation-id"},
-            description =
-                    "GitHub App Installation ID for the target repositories. If set, the app installation must be done on the given github owner (personal or organization).")
-    public Long githubAppTargetInstallationId;
+        @Option(
+                names = {"--github-app-target-installation-id"},
+                description =
+                        "GitHub App Installation ID for the target repositories. If set, the app installation must be done on the given github owner (personal or organization).")
+        public Long githubAppTargetInstallationId;
 
-    @Option(
-            names = {"-n", "--dry-run"},
-            description = "Perform a dry run without making any changes.")
-    public boolean dryRun;
+        @Option(
+                names = {"-n", "--dry-run"},
+                description = "Perform a dry run without making any changes.")
+        public boolean dryRun;
 
-    @Option(
-            names = {"--draft"},
-            description = "Open a draft pull request.")
-    public boolean draft;
+        @Option(
+                names = {"--draft"},
+                description = "Open a draft pull request.")
+        public boolean draft;
 
-    @Option(
-            names = {"--skip-push"},
-            description = "Skip pushing changes to the forked repositories. Always true if --dry-run is set.")
-    public boolean skipPush;
+        @Option(
+                names = {"--skip-push"},
+                description = "Skip pushing changes to the forked repositories. Always true if --dry-run is set.")
+        public boolean skipPush;
 
-    @Option(
-            names = {"--skip-build"},
-            description = "Skip building the plugins before and after modernization.")
-    public boolean skipBuild;
+        @Option(
+                names = {"--skip-build"},
+                description = "Skip building the plugins before and after modernization.")
+        public boolean skipBuild;
 
-    @Option(
-            names = {"--skip-pull-request"},
-            description = "Skip creating pull requests but pull changes to the fork. Always true if --dry-run is set.")
-    public boolean skipPullRequest;
+        @Option(
+                names = {"--skip-pull-request"},
+                description =
+                        "Skip creating pull requests but pull changes to the fork. Always true if --dry-run is set.")
+        public boolean skipPullRequest;
 
-    @Option(
-            names = {"--clean-local-data"},
-            description = "Remove local plugin data before and after the modernization process.")
-    public boolean removeLocalData;
+        @Option(
+                names = {"--clean-local-data"},
+                description = "Remove local plugin data before and after the modernization process.")
+        public boolean removeLocalData;
 
-    @Option(
-            names = {"--clean-forks"},
-            description =
-                    "Remove forked repositories before and after the modernization process. Might cause data loss if you have other changes pushed on those forks. Forks with open pull request targeting original repo are not removed to prevent closing unmerged pull requests.")
-    public boolean removeForks;
+        @Option(
+                names = {"--clean-forks"},
+                description =
+                        "Remove forked repositories before and after the modernization process. Might cause data loss if you have other changes pushed on those forks. Forks with open pull request targeting original repo are not removed to prevent closing unmerged pull requests.")
+        public boolean removeForks;
 
-    @Option(
-            names = {"-e", "--export-datatables"},
-            description = "Creates a report or summary of the changes made through OpenRewrite.")
-    public boolean exportDatatables;
+        @Option(
+                names = {"-e", "--export-datatables"},
+                description = "Creates a report or summary of the changes made through OpenRewrite.")
+        public boolean exportDatatables;
 
-    @Option(
-            names = {"-d", "--debug"},
-            description = "Enable debug logging.")
-    public boolean debug;
+        @Option(
+                names = "--jenkins-update-center",
+                description =
+                        "Sets main update center; will override JENKINS_UC environment variable. If not set via CLI option or environment variable, will use default update center url.")
+        public URL jenkinsUpdateCenter = Settings.DEFAULT_UPDATE_CENTER_URL;
 
-    @Option(
-            names = "--jenkins-update-center",
-            description =
-                    "Sets main update center; will override JENKINS_UC environment variable. If not set via CLI option or environment variable, will use default update center url.")
-    public URL jenkinsUpdateCenter = Settings.DEFAULT_UPDATE_CENTER_URL;
+        @Option(
+                names = "--jenkins-plugin-info",
+                description =
+                        "Sets jenkins plugin version; will override JENKINS_PLUGIN_INFO environment variable. If not set via CLI option or environment variable, will use default plugin info")
+        public URL jenkinsPluginVersions = Settings.DEFAULT_PLUGIN_VERSIONS;
 
-    @Option(
-            names = "--jenkins-plugin-info",
-            description =
-                    "Sets jenkins plugin version; will override JENKINS_PLUGIN_INFO environment variable. If not set via CLI option or environment variable, will use default plugin info")
-    public URL jenkinsPluginVersions = Settings.DEFAULT_PLUGIN_VERSIONS;
+        @Option(
+                names = "--plugin-health-score",
+                description =
+                        "Sets the plugin health score URL; will override JENKINS_PHS environment variable. If not set via CLI option or environment variable, will use default health score url.")
+        public URL pluginHealthScore = Settings.DEFAULT_HEALTH_SCORE_URL;
 
-    @Option(
-            names = "--plugin-health-score",
-            description =
-                    "Sets the plugin health score URL; will override JENKINS_PHS environment variable. If not set via CLI option or environment variable, will use default health score url.")
-    public URL pluginHealthScore = Settings.DEFAULT_HEALTH_SCORE_URL;
+        @Option(
+                names = "--jenkins-plugins-stats-installations-url",
+                description =
+                        "Sets the Jenkins stats top plugins URL; will override JENKINS_PLUGINS_STATS_INSTALLATIONS_URL environment variable. If not set via CLI option or environment variable, will use default Jenkins stats top plugins url.")
+        public URL jenkinsPluginsStatsInstallationsUrl = Settings.DEFAULT_PLUGINS_STATS_INSTALLATIONS_URL;
 
-    @Option(
-            names = "--jenkins-plugins-stats-installations-url",
-            description =
-                    "Sets the Jenkins stats top plugins URL; will override JENKINS_PLUGINS_STATS_INSTALLATIONS_URL environment variable. If not set via CLI option or environment variable, will use default Jenkins stats top plugins url.")
-    public URL jenkinsPluginsStatsInstallationsUrl = Settings.DEFAULT_PLUGINS_STATS_INSTALLATIONS_URL;
+        @Option(
+                names = {"-c", "--cache-path"},
+                description = "Path to the cache directory.")
+        public Path cachePath = Settings.DEFAULT_CACHE_PATH;
 
-    @Option(
-            names = {"-c", "--cache-path"},
-            description = "Path to the cache directory.")
-    public Path cachePath = Settings.DEFAULT_CACHE_PATH;
+        @Option(
+                names = {"-m", "--maven-home"},
+                description = "Path to the Maven Home directory.")
+        public Path mavenHome = Settings.DEFAULT_MAVEN_HOME;
 
-    @Option(
-            names = {"-m", "--maven-home"},
-            description = "Path to the Maven Home directory.")
-    public Path mavenHome = Settings.DEFAULT_MAVEN_HOME;
+        @Option(
+                names = {"-l", "--list-recipes"},
+                help = true,
+                description = "List available recipes.")
+        public boolean listRecipes;
 
-    @Option(
-            names = {"-l", "--list-recipes"},
-            help = true,
-            description = "List available recipes.")
-    public boolean listRecipes;
-
-    public Config setup() {
-        Config.DEBUG = debug;
-        return Config.builder()
-                .withVersion(getVersion())
-                .withGitHubOwner(githubOwner)
-                .withGitHubAppId(githubAppId)
-                .withGitHubAppSourceInstallationId(githubAppSourceInstallationId)
-                .withGitHubAppTargetInstallationId(githubAppTargetInstallationId)
-                .withPlugins(pluginOptions != null ? pluginOptions.plugins : new ArrayList<>())
-                .withRecipe(recipe)
-                .withDryRun(dryRun)
-                .withSkipPush(skipPush)
-                .withSkipBuild(skipBuild)
-                .withSkipPullRequest(skipPullRequest)
-                .withDraft(draft)
-                .withRemoveLocalData(removeLocalData)
-                .withRemoveForks(removeForks)
-                .withExportDatatables(exportDatatables)
-                .withJenkinsUpdateCenter(jenkinsUpdateCenter)
-                .withJenkinsPluginVersions(jenkinsPluginVersions)
-                .withPluginHealthScore(pluginHealthScore)
-                .withPluginStatsInstallations(jenkinsPluginsStatsInstallationsUrl)
-                .withCachePath(
-                        !cachePath.endsWith(Settings.CACHE_SUBDIR)
-                                ? cachePath.resolve(Settings.CACHE_SUBDIR)
-                                : cachePath)
-                .withMavenHome(mavenHome)
-                .build();
-    }
-
-    public String getVersion() {
-        try {
-            return new PomVersionProvider().getVersion()[0];
-        } catch (Exception e) {
-            LOG.error("Error getting version from pom.properties", e);
-            return "unknown";
+        public void listAvailableRecipes() {
+            // Strip the FQDN prefix from the recipe name
+            Settings.AVAILABLE_RECIPES.forEach(recipe -> LOG.info(
+                    "{} - {}",
+                    recipe.getName().replaceAll(Settings.RECIPE_FQDN_PREFIX + ".", ""),
+                    recipe.getDescription()));
         }
-    }
 
-    public void listAvailableRecipes() {
-        // Strip the FQDN prefix from the recipe name
-        Settings.AVAILABLE_RECIPES.forEach(recipe -> LOG.info(
-                "{} - {}",
-                recipe.getName().replaceAll(Settings.RECIPE_FQDN_PREFIX + ".", ""),
-                recipe.getDescription()));
-    }
-
-    private List<Plugin> loadPlugins() {
-        if (pluginOptions == null) {
-            return new ArrayList<>();
-        }
-        List<Plugin> loadedPlugins = new ArrayList<>();
-        PluginService service = Guice.createInjector(new GuiceModule(setup())).getInstance(PluginService.class);
-        if (pluginOptions.pluginFile != null) {
-            List<Plugin> pluginsFromFile = service.loadPluginsFromFile(pluginOptions.pluginFile);
-            if (pluginsFromFile != null) {
-                loadedPlugins.addAll(pluginsFromFile);
+        public String getVersion() {
+            try {
+                return new PomVersionProvider().getVersion()[0];
+            } catch (Exception e) {
+                LOG.error("Error getting version from pom.properties", e);
+                return "unknown";
             }
         }
-        if (pluginOptions.plugins != null) {
-            loadedPlugins.addAll(pluginOptions.plugins);
+
+        /**
+         * Create a new config build for the global options
+         * @return Config.Builder for global options
+         */
+        public Config.Builder setup() {
+            Config.DEBUG = debug;
+            return Config.builder()
+                    .withVersion(getVersion())
+                    .withGitHubOwner(githubOwner)
+                    .withGitHubAppId(githubAppId)
+                    .withGitHubAppSourceInstallationId(githubAppSourceInstallationId)
+                    .withGitHubAppTargetInstallationId(githubAppTargetInstallationId)
+                    .withDryRun(dryRun)
+                    .withSkipPush(skipPush)
+                    .withSkipBuild(skipBuild)
+                    .withSkipPullRequest(skipPullRequest)
+                    .withDraft(draft)
+                    .withRemoveLocalData(removeLocalData)
+                    .withRemoveForks(removeForks)
+                    .withExportDatatables(exportDatatables)
+                    .withJenkinsUpdateCenter(jenkinsUpdateCenter)
+                    .withJenkinsPluginVersions(jenkinsPluginVersions)
+                    .withPluginHealthScore(pluginHealthScore)
+                    .withPluginStatsInstallations(jenkinsPluginsStatsInstallationsUrl)
+                    .withCachePath(
+                            !cachePath.endsWith(Settings.CACHE_SUBDIR)
+                                    ? cachePath.resolve(Settings.CACHE_SUBDIR)
+                                    : cachePath)
+                    .withMavenHome(mavenHome);
         }
-        return loadedPlugins;
     }
 
-    @Override
-    public void run() {
-        if (listRecipes) {
-            listAvailableRecipes();
-            return;
+    /**
+     * Validate command
+     */
+    @CommandLine.Command(name = "validate", description = "Validate")
+    public static class ValidateCommand implements Callable<Integer> {
+
+        @CommandLine.Mixin
+        private GlobalOptions options;
+
+        @Override
+        public Integer call() throws Exception {
+            LOG.info("Validate");
+            PluginModernizer modernizer = Guice.createInjector(
+                            new GuiceModule(options.setup().build()))
+                    .getInstance(PluginModernizer.class);
+            modernizer.validate();
+            return 0;
         }
-        if (pluginOptions != null) {
-            pluginOptions.plugins = loadPlugins();
+    }
+
+    /**
+     * Run command
+     */
+    @CommandLine.Command(name = "run", description = "Run")
+    public static class RunCommand implements Callable<Integer> {
+
+        @CommandLine.ArgGroup(exclusive = true, multiplicity = "1")
+        private PluginOptions pluginOptions;
+
+        @Option(
+                names = {"-r", "--recipe"},
+                required = true,
+                description = "Recipe to be applied.",
+                converter = RecipeConverter.class)
+        private Recipe recipe;
+
+        @CommandLine.Mixin
+        private GlobalOptions options;
+
+        public Config setup(Config.Builder builder) {
+            return builder.withPlugins(pluginOptions != null ? pluginOptions.plugins : new ArrayList<>())
+                    .withRecipe(recipe)
+                    .build();
         }
-        LOG.info("Starting Plugin Modernizer");
-        PluginModernizer modernizer =
-                Guice.createInjector(new GuiceModule(setup())).getInstance(PluginModernizer.class);
-        modernizer.start();
+
+        public List<Plugin> loadPlugins() {
+            if (pluginOptions == null) {
+                return new ArrayList<>();
+            }
+            List<Plugin> loadedPlugins = new ArrayList<>();
+            PluginService service = Guice.createInjector(new GuiceModule(setup(options.setup())))
+                    .getInstance(PluginService.class);
+            if (pluginOptions.pluginFile != null) {
+                List<Plugin> pluginsFromFile = service.loadPluginsFromFile(pluginOptions.pluginFile);
+                if (pluginsFromFile != null) {
+                    loadedPlugins.addAll(pluginsFromFile);
+                }
+            }
+            if (pluginOptions.plugins != null) {
+                loadedPlugins.addAll(pluginOptions.plugins);
+            }
+            return loadedPlugins;
+        }
+
+        @Override
+        public Integer call() throws Exception {
+            LOG.info("Run Plugin Modernizer");
+            if (pluginOptions != null) {
+                pluginOptions.plugins = loadPlugins();
+            }
+            PluginModernizer modernizer = Guice.createInjector(new GuiceModule(setup(options.setup())))
+                    .getInstance(PluginModernizer.class);
+            modernizer.start();
+            return 0;
+        }
     }
 
     /**
