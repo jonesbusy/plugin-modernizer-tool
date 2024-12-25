@@ -5,12 +5,21 @@ import io.jenkins.tools.pluginmodernizer.core.extractor.PomVisitor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.marker.Markers;
 import org.openrewrite.maven.AddPropertyVisitor;
 import org.openrewrite.maven.MavenIsoVisitor;
 import org.openrewrite.xml.ChangeTagValueVisitor;
+import org.openrewrite.xml.XmlVisitor;
+import org.openrewrite.xml.tree.Content;
 import org.openrewrite.xml.tree.Xml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+import static org.openrewrite.Tree.randomId;
 
 public class MigrateToJenkinsBaseLineProperty extends Recipe {
 
@@ -35,6 +44,15 @@ public class MigrateToJenkinsBaseLineProperty extends Recipe {
      * Visitor to migrate to Jenkins baseline property.
      */
     private static class MigrateToJenkinsBaseLinePropertyVisitor extends MavenIsoVisitor<ExecutionContext> {
+
+        @Override
+        public Xml.Tag visitTag(Xml.Tag tag, ExecutionContext executionContext) {
+            tag = super.visitTag(tag, executionContext);
+            if (tag.getName().equals("jenkins.version") && tag.getContent() != null) {
+                doAfterVisit(new AddCommentVisitor<>("Jenkins baseline version"));
+            }
+            return tag;
+        }
 
         @Override
         public Xml.Document visitDocument(Xml.Document document, ExecutionContext ctx) {
@@ -87,4 +105,33 @@ public class MigrateToJenkinsBaseLineProperty extends Recipe {
             doAfterVisit(new ChangeTagValueVisitor<>(artifactIdTag, "bom-${jenkins.baseline}.x"));
         }
     }
+
+    public static class AddCommentVisitor<P> extends XmlVisitor<P> {
+        private final String comment;
+
+        public AddCommentVisitor(String comment) {
+            this.comment = comment;
+        }
+
+        @Override
+        public Xml visitTag(Xml.Tag tag, P p) {
+            if (tag.getName().equals("jenkins.version") && tag.getContent() != null) {
+                List<Content> contents = new ArrayList<>(tag.getContent());
+                boolean containsComment = contents.stream()
+                        .anyMatch(c -> c instanceof Xml.Comment &&
+                                comment.equals(((Xml.Comment) c).getText()));
+                if (!containsComment) {
+                    int insertPos = 0;
+                    Xml.Comment customComment = new Xml.Comment(randomId(),
+                            contents.get(insertPos).getPrefix(),
+                            Markers.EMPTY,
+                            comment);
+                    contents.add(insertPos, customComment);
+                    tag = tag.withContent(contents);
+                }
+            }
+            return tag;
+        }
+    }
+
 }
