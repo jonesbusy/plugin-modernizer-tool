@@ -4,7 +4,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.jenkins.UpgradeVersionProperty;
 import org.openrewrite.maven.MavenIsoVisitor;
 import org.openrewrite.xml.tree.Xml;
 import org.slf4j.Logger;
@@ -54,9 +53,8 @@ public class UpgradeJenkinsVersion extends Recipe {
             public Xml.Document visitDocument(Xml.Document document, ExecutionContext ctx) {
 
                 // Return another tree with jenkins version updated
-                document = (Xml.Document) new UpgradeVersionProperty("jenkins.version", minimumVersion)
-                        .getVisitor()
-                        .visitNonNull(document, ctx);
+                document = (Xml.Document)
+                        new UpgradeJenkinsProperty(minimumVersion).getVisitor().visitNonNull(document, ctx);
                 return (Xml.Document) new UpdateBom().getVisitor().visitNonNull(document, ctx);
             }
         };

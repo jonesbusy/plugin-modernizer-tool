@@ -12,8 +12,8 @@ import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.maven.AddPropertyVisitor;
-import org.openrewrite.maven.ChangeManagedDependencyGroupIdAndArtifactId;
 import org.openrewrite.maven.MavenIsoVisitor;
+import org.openrewrite.xml.ChangeTagValueVisitor;
 import org.openrewrite.xml.tree.Xml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,14 +132,7 @@ public class MigrateToJenkinsBaseLineProperty extends Recipe {
 
             // Change the artifact and perform upgrade
             if (!artifactIdTag.getValue().get().equals("bom-${jenkins.baseline}.x")) {
-                doAfterVisit(new ChangeManagedDependencyGroupIdAndArtifactId(
-                                "io.jenkins.tools.bom",
-                                artifactIdTag.getValue().get(),
-                                "io.jenkins.tools.bom",
-                                "bom-${jenkins.baseline}.x",
-                                version.getValue().get(),
-                                "\\.v[a-f0-9_]+")
-                        .getVisitor());
+                doAfterVisit(new ChangeTagValueVisitor<>(artifactIdTag, "bom-${jenkins.baseline}.x"));
             }
         }
     }
