@@ -1152,6 +1152,19 @@ public class DeclarativeRecipesTest implements RewriteTest {
                                     "io.jenkins.tools.pluginmodernizer.UpgradeNextMajorParentVersion")
                             .parser(parser);
                 },
+                groovy(
+                        """
+                    buildPlugin(
+                      forkCount: '1C', // Run a JVM per core in tests
+                      useContainerAgent: true, // Set to `false` if you need to use Docker for containerized tests
+                      configurations: [
+                        [platform: 'linux', jdk: 21],
+                        [platform: 'windows', jdk: 17],
+                    ])
+                    """,
+                        sourceSpecs -> {
+                            sourceSpecs.path(ArchetypeCommonFile.JENKINSFILE.getPath());
+                        }),
                 mavenProject("test"),
                 // language=xml
                 srcMainResources(text(
