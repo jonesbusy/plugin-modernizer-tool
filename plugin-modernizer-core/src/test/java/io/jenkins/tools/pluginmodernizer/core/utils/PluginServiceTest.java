@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doReturn;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.google.inject.Guice;
 import io.jenkins.tools.pluginmodernizer.core.GuiceModule;
 import io.jenkins.tools.pluginmodernizer.core.config.Config;
@@ -25,6 +25,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -34,9 +35,17 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith({MockitoExtension.class})
-@WireMockTest
-@Execution(ExecutionMode.SAME_THREAD) // Shared some resources, need refactoring
+@Execution(ExecutionMode.CONCURRENT)
 class PluginServiceTest {
+
+    @RegisterExtension
+    static WireMockExtension wm1 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm2 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm3 = WireMockExtension.newInstance().build();
 
     @Mock
     private CacheManager cacheManager;
@@ -214,18 +223,18 @@ class PluginServiceTest {
     }
 
     @Test
-    public void shouldDownloadPluginVersionDataUpdateCenterData(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void shouldDownloadPluginVersionDataUpdateCenterData() throws Exception {
 
         setupUpdateCenterMocks();
 
         // Download through wiremock to avoid hitting the real Jenkins update center
-        WireMock wireMock = wmRuntimeInfo.getWireMock();
+        WireMock wireMock = wm1.getRuntimeInfo().getWireMock();
 
         wireMock.register(WireMock.get(WireMock.urlEqualTo("/update-center.json"))
                 .willReturn(WireMock.okJson(JsonUtils.toJson(updateCenterData))));
 
         // No found from cache
-        doReturn(new URL(wmRuntimeInfo.getHttpBaseUrl() + "/update-center.json"))
+        doReturn(new URL(wm1.getRuntimeInfo().getHttpBaseUrl() + "/update-center.json"))
                 .when(config)
                 .getJenkinsUpdateCenter();
 
@@ -262,11 +271,12 @@ class PluginServiceTest {
     }
 
     @Test
-    public void shouldDownloadPluginVersionDataPluginHealthScore(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void shouldDownloadPluginVersionDataPluginHealthScore() throws Exception {
 
         setupHealthScoreMocks();
 
         // Download through wiremock to avoid hitting the real Jenkins update center
+        WireMockRuntimeInfo wmRuntimeInfo = wm2.getRuntimeInfo();
         WireMock wireMock = wmRuntimeInfo.getWireMock();
 
         wireMock.register(WireMock.get(WireMock.urlEqualTo("/api/scores"))
@@ -286,9 +296,11 @@ class PluginServiceTest {
     }
 
     @Test
-    public void shouldDownloadPluginInstallationsData(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void shouldDownloadPluginInstallationsData() throws Exception {
 
         setupHealthScoreMocks();
+
+        WireMockRuntimeInfo wmRuntimeInfo = wm3.getRuntimeInfo();
 
         // Download through wiremock to avoid hitting the real stats
         WireMock wireMock = wmRuntimeInfo.getWireMock();

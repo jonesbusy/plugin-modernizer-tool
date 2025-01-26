@@ -3,8 +3,8 @@ package io.jenkins.tools.pluginmodernizer.cli;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.jenkins.tools.pluginmodernizer.cli.utils.GitHubServerContainer;
 import io.jenkins.tools.pluginmodernizer.cli.utils.ModernizerTestWatcher;
 import io.jenkins.tools.pluginmodernizer.core.extractor.ArchetypeCommonFile;
@@ -22,7 +22,6 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.util.Properties;
-import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.DefaultInvoker;
@@ -34,13 +33,11 @@ import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -49,67 +46,55 @@ import org.testcontainers.shaded.org.bouncycastle.jce.provider.BouncyCastleProvi
 /**
  * Integration test for the command line interface
  */
-@WireMockTest
 @Testcontainers(disabledWithoutDocker = true)
 @ExtendWith(ModernizerTestWatcher.class)
-@Execution(ExecutionMode.SAME_THREAD) // Need split or not using shared resources like logs folder
+@Execution(ExecutionMode.CONCURRENT)
 public class CommandLineITCase {
 
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+    @RegisterExtension
+    static WireMockExtension wm1 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm2 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm3 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm4 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm5 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm6 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm7 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm8 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm9 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm10 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm11 = WireMockExtension.newInstance().build();
+
+    @RegisterExtension
+    static WireMockExtension wm12 = WireMockExtension.newInstance().build();
+
     /**
      * Logger
      */
     private static final Logger LOG = LoggerFactory.getLogger(CommandLineITCase.class);
-
-    /**
-     * Tests plugins
-     * @return the plugins
-     */
-    private static Stream<Arguments> testsPlugins() {
-        return Stream.of(
-                Arguments.of(new PluginMetadata() {
-                    {
-                        setPluginName("empty");
-                        setJenkinsVersion("2.452.4");
-                    }
-                }),
-                Arguments.of(new PluginMetadata() {
-                    {
-                        setPluginName("empty-no-bom");
-                        setJenkinsVersion("2.452.4");
-                    }
-                }),
-                Arguments.of(new PluginMetadata() {
-                    {
-                        setPluginName("replace-by-api-plugins");
-                        setJenkinsVersion("2.452.4");
-                    }
-                }),
-                // Similar to vagrant plugin pom
-                Arguments.of(new PluginMetadata() {
-                    {
-                        setPluginName("jenkins-1.5");
-                        setJenkinsVersion("1.532.3");
-                    }
-                }),
-                // Based on pyenv-pipeline plugin pom
-                Arguments.of(new PluginMetadata() {
-                    {
-                        setPluginName("jenkins-1.6");
-                        setJenkinsVersion("1.651.2");
-                    }
-                }),
-                // Based on adaptive-disconnector plugin pom
-                Arguments.of(new PluginMetadata() {
-                    {
-                        setPluginName("missing-relative-path-and-http-url");
-                        setJenkinsVersion("1.609");
-                    }
-                }));
-    }
 
     // Path for logs
     private final Path logFolder = Path.of("logs");
@@ -134,7 +119,6 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Always")
-    @Execution(ExecutionMode.CONCURRENT)
     public void testVersion() throws Exception {
         Path logFile = setupLogs("testVersion");
         Invoker invoker = buildInvoker();
@@ -158,7 +142,6 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Always")
-    @Execution(ExecutionMode.CONCURRENT)
     public void testHelp() throws Exception {
         Path logFile = setupLogs("testHelp");
         Invoker invoker = buildInvoker();
@@ -173,7 +156,6 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    @Execution(ExecutionMode.CONCURRENT)
     public void testCleanupWithDryRun() throws Exception {
         Path logFile = setupLogs("testCleanupWithDryRun");
         Invoker invoker = buildInvoker();
@@ -200,10 +182,11 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    @Execution(ExecutionMode.CONCURRENT)
-    public void testValidateWithSshKey(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testValidateWithSshKey() throws Exception {
 
         Path logFile = setupLogs("testValidateWithSshKey");
+
+        WireMockRuntimeInfo wmRuntimeInfo = wm7.getRuntimeInfo();
 
         // Setup
         WireMock wireMock = wmRuntimeInfo.getWireMock();
@@ -230,8 +213,9 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    @Execution(ExecutionMode.CONCURRENT)
-    public void testValidate(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testValidate() throws Exception {
+
+        WireMockRuntimeInfo wmRuntimeInfo = wm8.getRuntimeInfo();
 
         Path logFile = setupLogs("testValidate");
 
@@ -255,7 +239,6 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    @Execution(ExecutionMode.CONCURRENT)
     public void testListRecipes() throws Exception {
         Path logFile = setupLogs("testListRecipes");
         Invoker invoker = buildInvoker();
@@ -273,10 +256,73 @@ public class CommandLineITCase {
                                 line -> line.matches(".*FetchMetadata - Extracts metadata from a Jenkins plugin.*"))));
     }
 
-    @ParameterizedTest
-    @MethodSource("testsPlugins")
-    @Tag("Slow")
-    public void testBuildMetadata(PluginMetadata expectedMetadata, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    @Test
+    void testBuildMetadataEmptyPlugin() {
+        PluginMetadata expectedMetadata = new PluginMetadata() {
+            {
+                setPluginName("empty");
+                setJenkinsVersion("2.452.4");
+            }
+        };
+        assertDoesNotThrow(() -> testBuildMetadata(wm1.getRuntimeInfo(), expectedMetadata));
+    }
+
+    @Test
+    void testBuildMetadataEmptyNoBomPlugin() {
+        PluginMetadata expectedMetadata = new PluginMetadata() {
+            {
+                setPluginName("empty-no-bom");
+                setJenkinsVersion("2.452.4");
+            }
+        };
+        assertDoesNotThrow(() -> testBuildMetadata(wm2.getRuntimeInfo(), expectedMetadata));
+    }
+
+    @Test
+    void testBuildMetadataReplaceByApiPlugin() {
+        PluginMetadata expectedMetadata = new PluginMetadata() {
+            {
+                setPluginName("replace-by-api-plugins");
+                setJenkinsVersion("2.452.4");
+            }
+        };
+        assertDoesNotThrow(() -> testBuildMetadata(wm3.getRuntimeInfo(), expectedMetadata));
+    }
+
+    @Test
+    void testBuildMetadataJenkins15() {
+        PluginMetadata expectedMetadata = new PluginMetadata() {
+            {
+                setPluginName("jenkins-1.5");
+                setJenkinsVersion("1.532.3");
+            }
+        };
+        assertDoesNotThrow(() -> testBuildMetadata(wm4.getRuntimeInfo(), expectedMetadata));
+    }
+
+    @Test
+    void testBuildMetadataJenkins16() {
+        PluginMetadata expectedMetadata = new PluginMetadata() {
+            {
+                setPluginName("jenkins-1.6");
+                setJenkinsVersion("1.651.2");
+            }
+        };
+        assertDoesNotThrow(() -> testBuildMetadata(wm5.getRuntimeInfo(), expectedMetadata));
+    }
+
+    @Test
+    void testBuildMetadataMissingRelativePath() {
+        PluginMetadata expectedMetadata = new PluginMetadata() {
+            {
+                setPluginName("missing-relative-path-and-http-url");
+                setJenkinsVersion("1.609");
+            }
+        };
+        assertDoesNotThrow(() -> testBuildMetadata(wm6.getRuntimeInfo(), expectedMetadata));
+    }
+
+    void testBuildMetadata(WireMockRuntimeInfo wmRuntimeInfo, PluginMetadata expectedMetadata) throws Exception {
 
         Path logFile = logFolder.resolve("testBuildMetadata-%s.txt".formatted(expectedMetadata.getPluginName()));
         Files.deleteIfExists(logFile);
@@ -330,7 +376,9 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testDryRunReplaceLibrariesWithApiPlugin(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testDryRunReplaceLibrariesWithApiPlugin() throws Exception {
+
+        WireMockRuntimeInfo wmRuntimeInfo = wm8.getRuntimeInfo();
 
         Path logFile1 = setupLogs("testDryRunReplaceLibrariesWithApiPlugin1");
         Path logFile2 = setupLogs("testDryRunReplaceLibrariesWithApiPlugin2");
@@ -393,7 +441,9 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testRunAddDependabot(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testRunAddDependabot() throws Exception {
+
+        WireMockRuntimeInfo wmRuntimeInfo = wm9.getRuntimeInfo();
 
         Path logFile = setupLogs("testRunAddDependabot");
 
@@ -467,7 +517,9 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testDryRunAddDependabot(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testDryRunAddDependabot() throws Exception {
+
+        WireMockRuntimeInfo wmRuntimeInfo = wm10.getRuntimeInfo();
 
         Path logFile = setupLogs("testDryRunAddDependabot");
 
@@ -511,7 +563,9 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testRecipeOnLocalPlugin(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testRecipeOnLocalPlugin() throws Exception {
+
+        WireMockRuntimeInfo wmRuntimeInfo = wm11.getRuntimeInfo();
 
         Path logFile = setupLogs("testRecipeOnLocalPlugin");
 
@@ -561,7 +615,9 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testRecipeOnLocalPluginWithRunMode(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testRecipeOnLocalPluginWithRunMode() throws Exception {
+
+        WireMockRuntimeInfo wmRuntimeInfo = wm12.getRuntimeInfo();
 
         Path logFile = setupLogs("testRecipeOnLocalPluginWithRunMode");
 
