@@ -1,7 +1,12 @@
 package io.jenkins.tools.pluginmodernizer.cli;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -21,6 +26,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.Security;
+import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
@@ -36,8 +42,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -52,7 +56,6 @@ import org.testcontainers.shaded.org.bouncycastle.jce.provider.BouncyCastleProvi
 @WireMockTest
 @Testcontainers(disabledWithoutDocker = true)
 @ExtendWith(ModernizerTestWatcher.class)
-@Execution(ExecutionMode.SAME_THREAD) // Need split or not using shared resources like logs folder
 public class CommandLineITCase {
 
     static {
@@ -74,18 +77,21 @@ public class CommandLineITCase {
                     {
                         setPluginName("empty");
                         setJenkinsVersion("2.452.4");
+                        setProperties(Map.of("wiremock.port", "50460"));
                     }
                 }),
                 Arguments.of(new PluginMetadata() {
                     {
                         setPluginName("empty-no-bom");
                         setJenkinsVersion("2.452.4");
+                        setProperties(Map.of("wiremock.port", "50461"));
                     }
                 }),
                 Arguments.of(new PluginMetadata() {
                     {
                         setPluginName("replace-by-api-plugins");
                         setJenkinsVersion("2.452.4");
+                        setProperties(Map.of("wiremock.port", "50462"));
                     }
                 }),
                 // Similar to vagrant plugin pom
@@ -93,6 +99,7 @@ public class CommandLineITCase {
                     {
                         setPluginName("jenkins-1.5");
                         setJenkinsVersion("1.532.3");
+                        setProperties(Map.of("wiremock.port", "50463"));
                     }
                 }),
                 // Based on pyenv-pipeline plugin pom
@@ -100,6 +107,7 @@ public class CommandLineITCase {
                     {
                         setPluginName("jenkins-1.6");
                         setJenkinsVersion("1.651.2");
+                        setProperties(Map.of("wiremock.port", "50464"));
                     }
                 }),
                 // Based on adaptive-disconnector plugin pom
@@ -107,6 +115,7 @@ public class CommandLineITCase {
                     {
                         setPluginName("missing-relative-path-and-http-url");
                         setJenkinsVersion("1.609");
+                        setProperties(Map.of("wiremock.port", "50465"));
                     }
                 }));
     }
@@ -134,7 +143,6 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Always")
-    @Execution(ExecutionMode.CONCURRENT)
     public void testVersion() throws Exception {
         Path logFile = setupLogs("testVersion");
         Invoker invoker = buildInvoker();
@@ -158,7 +166,6 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Always")
-    @Execution(ExecutionMode.CONCURRENT)
     public void testHelp() throws Exception {
         Path logFile = setupLogs("testHelp");
         Invoker invoker = buildInvoker();
@@ -173,7 +180,6 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    @Execution(ExecutionMode.CONCURRENT)
     public void testCleanupWithDryRun() throws Exception {
         Path logFile = setupLogs("testCleanupWithDryRun");
         Invoker invoker = buildInvoker();
@@ -200,8 +206,11 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    @Execution(ExecutionMode.CONCURRENT)
-    public void testValidateWithSshKey(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testValidateWithSshKey() throws Exception {
+
+        WireMockServer wireMockServer = new WireMockServer(30460);
+        wireMockServer.start();
+        WireMockRuntimeInfo wmRuntimeInfo = new WireMockRuntimeInfo(wireMockServer);
 
         Path logFile = setupLogs("testValidateWithSshKey");
 
@@ -230,8 +239,11 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    @Execution(ExecutionMode.CONCURRENT)
-    public void testValidate(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testValidate() throws Exception {
+
+        WireMockServer wireMockServer = new WireMockServer(30461);
+        wireMockServer.start();
+        WireMockRuntimeInfo wmRuntimeInfo = new WireMockRuntimeInfo(wireMockServer);
 
         Path logFile = setupLogs("testValidate");
 
@@ -255,7 +267,6 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    @Execution(ExecutionMode.CONCURRENT)
     public void testListRecipes() throws Exception {
         Path logFile = setupLogs("testListRecipes");
         Invoker invoker = buildInvoker();
@@ -276,7 +287,12 @@ public class CommandLineITCase {
     @ParameterizedTest
     @MethodSource("testsPlugins")
     @Tag("Slow")
-    public void testBuildMetadata(PluginMetadata expectedMetadata, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testBuildMetadata(PluginMetadata expectedMetadata) throws Exception {
+
+        WireMockServer wireMockServer = new WireMockServer(
+                Integer.parseInt(expectedMetadata.getProperties().get("wiremock.port")));
+        wireMockServer.start();
+        WireMockRuntimeInfo wmRuntimeInfo = new WireMockRuntimeInfo(wireMockServer);
 
         Path logFile = logFolder.resolve("testBuildMetadata-%s.txt".formatted(expectedMetadata.getPluginName()));
         Files.deleteIfExists(logFile);
@@ -330,7 +346,11 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testDryRunReplaceLibrariesWithApiPlugin(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testDryRunReplaceLibrariesWithApiPlugin() throws Exception {
+
+        WireMockServer wireMockServer = new WireMockServer(30463);
+        wireMockServer.start();
+        WireMockRuntimeInfo wmRuntimeInfo = new WireMockRuntimeInfo(wireMockServer);
 
         Path logFile1 = setupLogs("testDryRunReplaceLibrariesWithApiPlugin1");
         Path logFile2 = setupLogs("testDryRunReplaceLibrariesWithApiPlugin2");
@@ -393,7 +413,11 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testRunAddDependabot(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testRunAddDependabot() throws Exception {
+
+        WireMockServer wireMockServer = new WireMockServer(60460);
+        wireMockServer.start();
+        WireMockRuntimeInfo wmRuntimeInfo = new WireMockRuntimeInfo(wireMockServer);
 
         Path logFile = setupLogs("testRunAddDependabot");
 
@@ -467,7 +491,11 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testDryRunAddDependabot(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testDryRunAddDependabot() throws Exception {
+
+        WireMockServer wireMockServer = new WireMockServer(60461);
+        wireMockServer.start();
+        WireMockRuntimeInfo wmRuntimeInfo = new WireMockRuntimeInfo(wireMockServer);
 
         Path logFile = setupLogs("testDryRunAddDependabot");
 
@@ -511,7 +539,11 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testRecipeOnLocalPlugin(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testRecipeOnLocalPlugin() throws Exception {
+
+        WireMockServer wireMockServer = new WireMockServer(60462);
+        wireMockServer.start();
+        WireMockRuntimeInfo wmRuntimeInfo = new WireMockRuntimeInfo(wireMockServer);
 
         Path logFile = setupLogs("testRecipeOnLocalPlugin");
 
@@ -561,7 +593,11 @@ public class CommandLineITCase {
 
     @Test
     @Tag("Slow")
-    public void testRecipeOnLocalPluginWithRunMode(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    public void testRecipeOnLocalPluginWithRunMode() throws Exception {
+
+        WireMockServer wireMockServer = new WireMockServer(60463);
+        wireMockServer.start();
+        WireMockRuntimeInfo wmRuntimeInfo = new WireMockRuntimeInfo(wireMockServer);
 
         Path logFile = setupLogs("testRecipeOnLocalPluginWithRunMode");
 
@@ -617,7 +653,7 @@ public class CommandLineITCase {
         String mavenHomeEnv = System.getenv("MAVEN_HOME");
         assertNotNull(mavenHomeEnv, "MAVEN_HOME is not set");
         Path mavenHome = Path.of(mavenHomeEnv);
-        assertTrue(Files.exists(mavenHome), "MAVEN_HOME does not exist");
+        assertTrue(Files.exists(mavenHome), "MAVEN_HOME does not exist on %s".formatted(mavenHome));
         Invoker invoker = new DefaultInvoker();
         invoker.setMavenHome(mavenHome.toFile());
         return invoker;
@@ -631,7 +667,7 @@ public class CommandLineITCase {
         String javaHomeEnv = System.getenv("JAVA_HOME");
         assertNotNull(javaHomeEnv, "JAVA_HOME is not set");
         Path javaHome = Path.of(javaHomeEnv);
-        assertTrue(Files.exists(javaHome), "JAVA_HOME does not exist");
+        assertTrue(Files.exists(javaHome), "JAVA_HOME does not exist on %s".formatted(javaHome));
 
         InvocationRequest request = new DefaultInvocationRequest();
         request.setPomFile(new File("pom-it.xml"));
