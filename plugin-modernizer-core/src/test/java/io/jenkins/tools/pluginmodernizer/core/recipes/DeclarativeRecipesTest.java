@@ -2880,7 +2880,8 @@ public class DeclarativeRecipesTest implements RewriteTest {
                     </pluginRepository>
                   </pluginRepositories>
                 </project>
-                """.formatted(Settings.getPluginVersion("asm-api"))));
+                """
+                                .formatted(Settings.getPluginVersion("asm-api"))));
     }
 
     @Test
