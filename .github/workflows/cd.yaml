@@ -103,7 +103,7 @@ jobs:
         with:
           arguments: release
           setup-java: false
-        uses: jreleaser/release-action@v2
+        uses: jreleaser/release-action@2.5.0
         env:
           JRELEASER_PROJECT_VERSION: ${{ steps.extract-version.outputs.version }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -119,7 +119,7 @@ jobs:
         with:
           arguments: publish
           setup-java: false
-        uses: jreleaser/release-action@v2
+        uses: jreleaser/release-action@2.5.0
         env:
           JRELEASER_PROJECT_VERSION: ${{ steps.extract-version.outputs.version }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
