@@ -2,5 +2,15 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>jenkinsci/renovate-config"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": "io.jenkins.plugin-modernizer:plugin-modernizer-pom",
+      "enabled": false
+    },
+    {
+      "matchFileNames": ["**/src/test/resources/**"],
+      "enabled": false
+    }
   ]
 }
