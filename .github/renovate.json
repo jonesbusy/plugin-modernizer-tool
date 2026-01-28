@@ -11,6 +11,18 @@
     {
       "matchFileNames": ["**/src/test/resources/**"],
       "enabled": false
+    },
+    {
+      "matchPackageNames": ["/jakarta.inject.*/"],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": ["/com.fasterxml.jackson.*/"],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": ["/org.junit.*/"],
+      "enabled": false
     }
   ]
 }
