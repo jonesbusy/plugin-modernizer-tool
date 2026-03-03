@@ -3595,6 +3595,106 @@ public class DeclarativeRecipesTest implements RewriteTest {
     }
 
     @Test
+    void migrateJackson2To3() {
+        rewriteRun(
+                spec -> {
+                    var parser = JavaParser.fromJavaVersion().logCompilationWarningsAndErrors(true);
+                    collectRewriteTestDependencies().forEach(parser::addClasspathEntry);
+                    spec.recipe(org.openrewrite.config.Environment.builder()
+                                    .scanRuntimeClasspath()
+                                    .build()
+                                    .activateRecipes("io.jenkins.tools.pluginmodernizer.MigrateJackson2To3"))
+                            .parser(parser);
+                },
+                pomXml("""
+                        <?xml version="1.0" encoding="UTF-8"?>
+                        <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+                          <modelVersion>4.0.0</modelVersion>
+                          <groupId>io.jenkins.plugins</groupId>
+                          <artifactId>empty</artifactId>
+                          <version>1.0.0-SNAPSHOT</version>
+                          <dependencyManagement>
+                            <dependencies>
+                              <dependency>
+                                <groupId>io.jenkins.tools.bom</groupId>
+                                <artifactId>bom-2.528.x</artifactId>
+                                <version>6098.v29a_dff8a_0c19</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                              </dependency>
+                            </dependencies>
+                          </dependencyManagement>
+                          <dependencies>
+                            <dependency>
+                              <groupId>org.jenkins-ci.plugins</groupId>
+                              <artifactId>jackson2-api</artifactId>
+                            </dependency>
+                          </dependencies>
+                          <repositories>
+                            <repository>
+                              <id>repo.jenkins-ci.org</id>
+                              <url>https://repo.jenkins-ci.org/public/</url>
+                            </repository>
+                          </repositories>
+                        </project>
+                        """, """
+                        <?xml version="1.0" encoding="UTF-8"?>
+                        <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+                          <modelVersion>4.0.0</modelVersion>
+                          <groupId>io.jenkins.plugins</groupId>
+                          <artifactId>empty</artifactId>
+                          <version>1.0.0-SNAPSHOT</version>
+                          <dependencyManagement>
+                            <dependencies>
+                              <dependency>
+                                <groupId>io.jenkins.tools.bom</groupId>
+                                <artifactId>bom-2.528.x</artifactId>
+                                <version>6098.v29a_dff8a_0c19</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                              </dependency>
+                            </dependencies>
+                          </dependencyManagement>
+                          <dependencies>
+                            <dependency>
+                              <groupId>io.jenkins.plugins</groupId>
+                              <artifactId>jackson3-api</artifactId>
+                            </dependency>
+                          </dependencies>
+                          <repositories>
+                            <repository>
+                              <id>repo.jenkins-ci.org</id>
+                              <url>https://repo.jenkins-ci.org/public/</url>
+                            </repository>
+                          </repositories>
+                        </project>
+                        """));
+    }
+
+    @Test
+    void noChangeWhenNoJackson2() {
+        rewriteRun(
+                spec -> {
+                    var parser = JavaParser.fromJavaVersion().logCompilationWarningsAndErrors(true);
+                    collectRewriteTestDependencies().forEach(parser::addClasspathEntry);
+                    spec.recipe(org.openrewrite.config.Environment.builder()
+                                    .scanRuntimeClasspath()
+                                    .build()
+                                    .activateRecipes("io.jenkins.tools.pluginmodernizer.MigrateJackson2To3"))
+                            .parser(parser);
+                },
+                pomXml("""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>io.jenkins.plugins</groupId>
+              <artifactId>empty</artifactId>
+              <version>1.0.0-SNAPSHOT</version>
+            </project>
+            """));
+    }
+
+    @Test
     void migrateToJUnit5() {
         rewriteRun(
                 spec -> {

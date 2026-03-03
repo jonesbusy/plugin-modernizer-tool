@@ -259,6 +259,23 @@ recipeList:
   - org.openrewrite.java.RemoveUnusedImports
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: io.jenkins.tools.pluginmodernizer.MigrateJackson2To3
+displayName: Migrate Jackson 2 API to Jackson 3 API plugin
+description: Migrate Jackson 2 code usages and replace jackson2-api dependency with jackson3-api.
+tags: ['dependencies', 'migration']
+preconditions:
+  - org.openrewrite.maven.search.FindDependency:
+      groupId: org.jenkins-ci.plugins
+      artifactId: jackson2-api
+recipeList:
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.jenkins-ci.plugins
+      oldArtifactId: jackson2-api
+      newGroupId: io.jenkins.plugins
+      newArtifactId: jackson3-api
+  - org.openrewrite.java.jackson.UpgradeJackson_2_3
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: io.jenkins.tools.pluginmodernizer.AddCodeOwner
 displayName: Add CODEOWNERS file
 description: Adds a CODEOWNERS file to a Jenkins plugin.

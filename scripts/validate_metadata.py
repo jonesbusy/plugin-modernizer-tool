@@ -95,6 +95,7 @@ valid_migration_ids = [
     "io.jenkins.tools.pluginmodernizer.MigrateTomakehurstToWiremock",
     "io.jenkins.tools.pluginmodernizer.MigrateCommonsLang2ToLang3AndCommonText",
     "io.jenkins.tools.pluginmodernizer.MigrateCommonsLangToJdkApi",
+    "io.jenkins.tools.pluginmodernizer.MigrateJackson2To3",
     "io.jenkins.tools.pluginmodernizer.RemoveOldJavaVersionForModernJenkins",
     "io.jenkins.tools.pluginmodernizer.SwitchToRenovate",
     "io.jenkins.tools.pluginmodernizer.JavaxAnnotationsToSpotbugs",

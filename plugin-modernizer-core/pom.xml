@@ -123,6 +123,10 @@
     </dependency>
     <dependency>
       <groupId>org.openrewrite.recipe</groupId>
+      <artifactId>rewrite-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openrewrite.recipe</groupId>
       <artifactId>rewrite-jenkins</artifactId>
       <!-- Allow testing more recent version of rewrite jenkins before bom is published -->
       <exclusions>

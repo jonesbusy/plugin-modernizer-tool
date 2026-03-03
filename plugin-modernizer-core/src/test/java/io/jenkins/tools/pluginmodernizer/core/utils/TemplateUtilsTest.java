@@ -913,4 +913,44 @@ public class TemplateUtilsTest {
         // Assert
         assertEquals("Migrate `javax.annotations` to SpotBugs annotations", result);
     }
+
+    @Test
+    public void testFriendlyPrTitleMigrateJackson2To3() {
+
+        // Mocks
+        Plugin plugin = mock(Plugin.class);
+        Recipe recipe = mock(Recipe.class);
+
+        doReturn("io.jenkins.tools.pluginmodernizer.MigrateJackson2To3")
+                .when(recipe)
+                .getName();
+
+        // Test
+        String result = TemplateUtils.renderPullRequestTitle(plugin, recipe);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.contains("Jackson"));
+        assertEquals("Migrate Jackson 2 API plugin to Jackson 3 API plugin", result);
+    }
+
+    @Test
+    public void testFriendlyPrBodyMigrateJackson2To3() {
+
+        // Mocks
+        Plugin plugin = mock(Plugin.class);
+        Recipe recipe = mock(Recipe.class);
+
+        doReturn("io.jenkins.tools.pluginmodernizer.MigrateJackson2To3")
+                .when(recipe)
+                .getName();
+
+        // Test
+        String result = TemplateUtils.renderPullRequestBody(plugin, recipe);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.contains("jackson2-api"));
+        assertTrue(result.contains("jackson3-api"));
+    }
 }
