@@ -3600,9 +3600,10 @@ public class DeclarativeRecipesTest implements RewriteTest {
                 spec -> {
                     var parser = JavaParser.fromJavaVersion().logCompilationWarningsAndErrors(true);
                     collectRewriteTestDependencies().forEach(parser::addClasspathEntry);
-                    spec.recipeFromResource(
-                                    "/META-INF/rewrite/recipes.yml",
-                                    "io.jenkins.tools.pluginmodernizer.MigrateJackson2To3")
+                    spec.recipe(org.openrewrite.config.Environment.builder()
+                                    .scanRuntimeClasspath()
+                                    .build()
+                                    .activateRecipes("io.jenkins.tools.pluginmodernizer.MigrateJackson2To3"))
                             .parser(parser);
                 },
                 pomXml("""
@@ -3676,9 +3677,10 @@ public class DeclarativeRecipesTest implements RewriteTest {
                 spec -> {
                     var parser = JavaParser.fromJavaVersion().logCompilationWarningsAndErrors(true);
                     collectRewriteTestDependencies().forEach(parser::addClasspathEntry);
-                    spec.recipeFromResource(
-                                    "/META-INF/rewrite/recipes.yml",
-                                    "io.jenkins.tools.pluginmodernizer.MigrateJackson2To3")
+                    spec.recipe(org.openrewrite.config.Environment.builder()
+                                    .scanRuntimeClasspath()
+                                    .build()
+                                    .activateRecipes("io.jenkins.tools.pluginmodernizer.MigrateJackson2To3"))
                             .parser(parser);
                 },
                 pomXml("""
