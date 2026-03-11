@@ -1,27 +1,20 @@
 package io.jenkins.tools.pluginmodernizer.core.github;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import java.net.SocketAddress;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.security.PublicKey;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
+import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link ServerKeyVerifier} implementation that validates the remote SSH host key
- * against GitHub's published keys from the /meta API endpoint.
+ * {@link ServerKeyVerifier} that validates the remote SSH host key against GitHub's
+ * published keys fetched via {@link GitHub#getMeta()}.
  *
  * @see <a href="https://api.github.com/meta">GitHub Meta API</a>
  */
@@ -29,20 +22,12 @@ public class GitHubServerKeyVerifier implements ServerKeyVerifier {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubServerKeyVerifier.class);
 
-    static final String GITHUB_META_URL = "https://api.github.com/meta";
-
-    private static final Gson GSON = new Gson();
-
-    private final HttpClient httpClient;
+    private final GitHub github;
 
     private volatile List<PublicKey> cachedKeys;
 
-    public GitHubServerKeyVerifier() {
-        this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build());
-    }
-
-    GitHubServerKeyVerifier(HttpClient httpClient) {
-        this.httpClient = httpClient;
+    public GitHubServerKeyVerifier(GitHub github) {
+        this.github = github;
     }
 
     @Override
@@ -69,57 +54,48 @@ public class GitHubServerKeyVerifier implements ServerKeyVerifier {
             if (cachedKeys != null) {
                 return cachedKeys;
             }
-            cachedKeys = fetchGitHubKeys();
+            List<PublicKey> keys = fetchGitHubKeys();
+            if (!keys.isEmpty()) {
+                cachedKeys = keys;
+            }
+            return keys;
         }
-        return cachedKeys;
     }
 
     private List<PublicKey> fetchGitHubKeys() {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(GITHUB_META_URL))
-                    .header("Accept", "application/json")
-                    .timeout(Duration.ofSeconds(10))
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                LOG.warn("GitHub meta API returned HTTP {}; cannot validate SSH host keys", response.statusCode());
+            List<String> sshKeys = github.getMeta().getSshKeys();
+            if (sshKeys == null || sshKeys.isEmpty()) {
+                LOG.warn("GitHub meta returned no SSH host keys");
                 return Collections.emptyList();
             }
-            return parseKeys(response.body());
+            List<PublicKey> keys = parseKeys(sshKeys);
+            if (keys.isEmpty()) {
+                LOG.warn("No valid SSH host keys could be parsed from GitHub meta");
+                return Collections.emptyList();
+            }
+            return keys;
         } catch (Exception e) {
-            LOG.warn("Failed to fetch GitHub SSH host keys from {}: {}", GITHUB_META_URL, e.getMessage());
+            LOG.warn("Failed to fetch GitHub SSH host keys: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
 
-    private List<PublicKey> parseKeys(String json) {
+    private List<PublicKey> parseKeys(List<String> rawKeys) {
         List<PublicKey> keys = new ArrayList<>();
-        try {
-            JsonObject root = GSON.fromJson(json, JsonObject.class);
-            JsonArray sshKeys = root.getAsJsonArray("ssh_keys");
-            if (sshKeys == null) {
-                LOG.warn("GitHub meta API response does not contain 'ssh_keys' field");
-                return Collections.emptyList();
+        for (String keyLine : rawKeys) {
+            if (keyLine == null || keyLine.isBlank()) {
+                continue;
             }
-            for (int i = 0; i < sshKeys.size(); i++) {
-                String keyLine = sshKeys.get(i).getAsString().trim();
-                if (keyLine.isEmpty()) {
-                    continue;
+            try {
+                PublicKeyEntry entry = PublicKeyEntry.parsePublicKeyEntry(keyLine.trim());
+                PublicKey key = entry.resolvePublicKey(null, null, null);
+                if (key != null) {
+                    keys.add(key);
                 }
-                try {
-                    PublicKeyEntry entry = PublicKeyEntry.parsePublicKeyEntry(keyLine);
-                    PublicKey key = entry.resolvePublicKey(null, null, null);
-                    if (key != null) {
-                        keys.add(key);
-                    }
-                } catch (Exception e) {
-                    LOG.warn("Failed to parse GitHub SSH host key entry '{}': {}", keyLine, e.getMessage());
-                }
+            } catch (Exception e) {
+                LOG.warn("Failed to parse SSH host key entry '{}': {}", keyLine, e.getMessage());
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse GitHub meta API JSON response: {}", e.getMessage());
         }
         return keys;
     }
