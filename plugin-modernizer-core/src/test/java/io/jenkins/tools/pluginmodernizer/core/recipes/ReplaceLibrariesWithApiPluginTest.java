@@ -2,6 +2,7 @@ package io.jenkins.tools.pluginmodernizer.core.recipes;
 
 import static org.openrewrite.maven.Assertions.pomXml;
 
+import io.jenkins.tools.pluginmodernizer.core.config.Settings;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
@@ -43,7 +44,7 @@ public class ReplaceLibrariesWithApiPluginTest implements RewriteTest {
                   <parent>
                     <groupId>org.jenkins-ci.plugins</groupId>
                     <artifactId>plugin</artifactId>
-                    <version>4.88</version>
+                    <version>6.2138.v03274d462c13</version>
                     <relativePath />
                   </parent>
                   <artifactId>antexec</artifactId>
@@ -51,7 +52,7 @@ public class ReplaceLibrariesWithApiPluginTest implements RewriteTest {
                   <packaging>hpi</packaging>
                   <properties>
                     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-                    <jenkins.baseline>2.479</jenkins.baseline>
+                    <jenkins.baseline>2.541</jenkins.baseline>
                     <jenkins.version>${jenkins.baseline}.1</jenkins.version>
                   </properties>
                   <dependencyManagement>
@@ -59,7 +60,7 @@ public class ReplaceLibrariesWithApiPluginTest implements RewriteTest {
                       <dependency>
                         <groupId>io.jenkins.tools.bom</groupId>
                         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-                        <version>4051.v78dce3ce8b_d6</version>
+                        <version>6146.vc53a_0edb_e986</version>
                         <scope>import</scope>
                         <type>pom</type>
                       </dependency>
@@ -100,7 +101,7 @@ public class ReplaceLibrariesWithApiPluginTest implements RewriteTest {
                   <parent>
                     <groupId>org.jenkins-ci.plugins</groupId>
                     <artifactId>plugin</artifactId>
-                    <version>4.88</version>
+                    <version>6.2138.v03274d462c13</version>
                     <relativePath />
                   </parent>
                   <artifactId>antexec</artifactId>
@@ -108,7 +109,7 @@ public class ReplaceLibrariesWithApiPluginTest implements RewriteTest {
                   <packaging>hpi</packaging>
                   <properties>
                     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-                    <jenkins.baseline>2.479</jenkins.baseline>
+                    <jenkins.baseline>2.541</jenkins.baseline>
                     <jenkins.version>${jenkins.baseline}.1</jenkins.version>
                   </properties>
                   <dependencyManagement>
@@ -116,7 +117,7 @@ public class ReplaceLibrariesWithApiPluginTest implements RewriteTest {
                       <dependency>
                         <groupId>io.jenkins.tools.bom</groupId>
                         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-                        <version>4570.v1b_c718dd3b_1e</version>
+                        <version>%s</version>
                         <scope>import</scope>
                         <type>pom</type>
                       </dependency>
@@ -154,7 +155,7 @@ public class ReplaceLibrariesWithApiPluginTest implements RewriteTest {
                     </pluginRepository>
                   </pluginRepositories>
                 </project>
-                """));
+                """.formatted(Settings.getBomVersion())));
     }
 
     @Test
