@@ -2,9 +2,8 @@ package io.jenkins.tools.pluginmodernizer.core.github;
 
 import java.net.SocketAddress;
 import java.security.PublicKey;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
@@ -32,18 +31,17 @@ public class GitHubServerKeyVerifier implements ServerKeyVerifier {
 
     @Override
     public boolean verifyServerKey(ClientSession clientSession, SocketAddress remoteAddress, PublicKey serverKey) {
-        List<PublicKey> knownKeys = getKnownKeys();
-        if (knownKeys.isEmpty()) {
-            LOG.warn("No GitHub SSH host keys available; rejecting connection to {}", remoteAddress);
+        return isValidServerKey(remoteAddress, serverKey);
+    }
+
+    private boolean isValidServerKey(SocketAddress remoteAddress, PublicKey serverKey) {
+        if (getKnownKeys().stream().noneMatch(serverKey::equals)) {
+            LOG.warn(
+                    "SSH host key for {} does not match any known GitHub host key; rejecting connection",
+                    remoteAddress);
             return false;
         }
-        for (PublicKey known : knownKeys) {
-            if (known.equals(serverKey)) {
-                return true;
-            }
-        }
-        LOG.warn("SSH host key for {} does not match any known GitHub host key; rejecting connection", remoteAddress);
-        return false;
+        return true;
     }
 
     private List<PublicKey> getKnownKeys() {
@@ -64,39 +62,39 @@ public class GitHubServerKeyVerifier implements ServerKeyVerifier {
 
     private List<PublicKey> fetchGitHubKeys() {
         try {
-            List<String> sshKeys = github.getMeta().getSshKeys();
+            var sshKeys = github.getMeta().getSshKeys();
             if (sshKeys == null || sshKeys.isEmpty()) {
                 LOG.warn("GitHub meta returned no SSH host keys");
-                return Collections.emptyList();
+                return List.of();
             }
-            List<PublicKey> keys = parseKeys(sshKeys);
+            var keys = parseKeys(sshKeys);
             if (keys.isEmpty()) {
                 LOG.warn("No valid SSH host keys could be parsed from GitHub meta");
-                return Collections.emptyList();
             }
             return keys;
         } catch (Exception e) {
             LOG.warn("Failed to fetch GitHub SSH host keys: {}", e.getMessage());
-            return Collections.emptyList();
+            return List.of();
+        }
+    }
+
+    private PublicKey parseKey(String keyLine) {
+        try {
+            var entry = PublicKeyEntry.parsePublicKeyEntry(keyLine);
+            return entry.resolvePublicKey(null, null, null);
+        } catch (Exception e) {
+            LOG.warn("Failed to parse SSH host key entry '{}': {}", keyLine, e.getMessage());
+            return null;
         }
     }
 
     private List<PublicKey> parseKeys(List<String> rawKeys) {
-        List<PublicKey> keys = new ArrayList<>();
-        for (String keyLine : rawKeys) {
-            if (keyLine == null || keyLine.isBlank()) {
-                continue;
-            }
-            try {
-                PublicKeyEntry entry = PublicKeyEntry.parsePublicKeyEntry(keyLine.trim());
-                PublicKey key = entry.resolvePublicKey(null, null, null);
-                if (key != null) {
-                    keys.add(key);
-                }
-            } catch (Exception e) {
-                LOG.warn("Failed to parse SSH host key entry '{}': {}", keyLine, e.getMessage());
-            }
-        }
-        return keys;
+        return rawKeys.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .map(this::parseKey)
+                .filter(Objects::nonNull)
+                .toList();
     }
 }
