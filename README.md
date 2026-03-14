@@ -5,9 +5,6 @@ Using OpenRewrite Recipes for Plugin Modernization or Automation Plugin Build Me
 </h3>
 </div>
 
-[![Build Status](https://ci.jenkins.io/job/Tools/job/plugin-modernizer-tool/job/main/badge/icon)](https://ci.jenkins.io/job/Tools/job/plugin-modernizer-tool/job/main/)
-[![Coverage](https://ci.jenkins.io/job/Tools/job/plugin-modernizer-tool/job/main/badge/icon?status=${instructionCoverage}&subject=coverage&color=${colorInstructionCoverage})](https://ci.jenkins.io/job/Tools/job/plugin-modernizer-tool/job/main)
-[![LOC](https://ci.jenkins.io/job/Tools/job/plugin-modernizer-tool/job/main/badge/icon?job=test&status=${lineOfCode}&subject=line%20of%20code&color=blue)](https://ci.jenkins.io/job/Tools/job/plugin-modernizer-tool/job/main)
 [![GitHub license](https://img.shields.io/github/license/jenkins-infra/plugin-modernizer-tool)](https://github.com/jenkins-infra/plugin-modernizer-tool/blob/main/LICENSE)
 
 > [!Note]
