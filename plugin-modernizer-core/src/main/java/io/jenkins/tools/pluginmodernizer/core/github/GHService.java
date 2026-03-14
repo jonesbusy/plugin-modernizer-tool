@@ -194,6 +194,7 @@ public class GHService {
                 FileKeyPairProvider keyPairProvider =
                         new FileKeyPairProvider(Collections.singletonList(config.getSshPrivateKey()));
                 client.setKeyIdentityProvider(keyPairProvider);
+                client.setServerKeyVerifier(new GitHubServerKeyVerifier(github));
                 GitSshdSessionFactory sshdFactory = new GitSshdSessionFactory(client);
                 SshSessionFactory.setInstance(sshdFactory);
             } catch (Exception e) {
