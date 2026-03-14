@@ -1,8 +1,8 @@
 # Define the VERSION argument with a default value
 ARG VERSION=999999-SNAPSHOT
 
-# Create the image using Maven and Eclipse Temurin JDK 21
-FROM maven:3.9.14-eclipse-temurin-21-noble AS result-image
+# Create the image using Maven and Eclipse Temurin JDK 25
+FROM maven:3.9.14-eclipse-temurin-25-noble AS result-image
 
 LABEL org.opencontainers.image.description="Using OpenRewrite Recipes for Plugin Modernization or Automation Plugin Build Metadata Updates"
 
