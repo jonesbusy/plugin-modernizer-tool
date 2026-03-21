@@ -101,7 +101,8 @@ valid_migration_ids = [
     "io.jenkins.tools.pluginmodernizer.JavaxAnnotationsToSpotbugs",
     "io.jenkins.tools.pluginmodernizer.AddIncrementals",
     "io.jenkins.tools.pluginmodernizer.EnableCD",
-    "io.jenkins.tools.pluginmodernizer.AutoMergeWorkflows"
+    "io.jenkins.tools.pluginmodernizer.AutoMergeWorkflows",
+    "io.jenkins.tools.pluginmodernizer.StrictBundledArtifacts"
 ]
 
 def validate_metadata(file_path):

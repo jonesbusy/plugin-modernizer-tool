@@ -586,6 +586,47 @@ public class TemplateUtilsTest {
     }
 
     @Test
+    public void testFriendlyPrBodyStrictBundledArtifact() {
+
+        // Mocks
+        Plugin plugin = mock(Plugin.class);
+        PluginMetadata metadata = mock(PluginMetadata.class);
+        Recipe recipe = mock(Recipe.class);
+
+        doReturn(metadata).when(plugin).getMetadata();
+        doReturn("io.jenkins.tools.pluginmodernizer.StrictBundledArtifacts")
+                .when(recipe)
+                .getName();
+
+        // Test
+        String result = TemplateUtils.renderPullRequestBody(plugin, recipe);
+
+        // Assert
+        assertTrue(result.contains("Why is this important?"), "Missing 'Why is this important?' section");
+        assertTrue(result.contains("hpi.bundledArtifacts"), "Missing property name");
+    }
+
+    @Test
+    public void testFriendlyPrTitleStrictBunldedArtifacts() {
+
+        // Mocks
+        Plugin plugin = mock(Plugin.class);
+        PluginMetadata metadata = mock(PluginMetadata.class);
+        Recipe recipe = mock(Recipe.class);
+
+        doReturn(metadata).when(plugin).getMetadata();
+        doReturn("io.jenkins.tools.pluginmodernizer.StrictBundledArtifacts")
+                .when(recipe)
+                .getName();
+
+        // Test
+        String result = TemplateUtils.renderPullRequestTitle(plugin, recipe);
+
+        // Assert
+        assertEquals("Strict bundled artifacts", result);
+    }
+
+    @Test
     public void testFriendlyPrTitleEnsureRelativePath() {
 
         // Mocks
