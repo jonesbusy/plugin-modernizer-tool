@@ -48,7 +48,7 @@ schema = {
 
 # migration IDs
 valid_migration_ids = [
-    "io.jenkins.tools.pluginmodernizer.FetchMetadata,"
+    "io.jenkins.tools.pluginmodernizer.FetchMetadata",
     "io.jenkins.tools.pluginmodernizer.MergeGitIgnoreRecipe",
     "io.jenkins.tools.pluginmodernizer.UpdateScmUrl",
     "io.jenkins.tools.pluginmodernizer.SetupJenkinsfile",
