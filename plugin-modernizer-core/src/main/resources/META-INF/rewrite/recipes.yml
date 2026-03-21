@@ -849,3 +849,13 @@ description: Enable Continuous Delivery using GitHub Actions reusable workflows 
 tags: ['chore']
 recipeList:
   - io.jenkins.tools.pluginmodernizer.core.recipes.EnableCD
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.jenkins.tools.pluginmodernizer.StrictBundledArtifacts
+displayName: Ensure the pom.xml contains the property `hpi.strictBundledArtifacts` set to `true`
+description: Ensure the pom.xml contains the property `hpi.strictBundledArtifacts` set to `true`.
+tags: ['dependencies', 'migration']
+recipeList:
+  - io.jenkins.tools.pluginmodernizer.core.recipes.AddProperty:
+      key: hpi.strictBundledArtifacts
+      value: true
