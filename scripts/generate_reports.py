@@ -35,8 +35,8 @@ for root, dirs, files in os.walk(json_dir):
                         if "migrationStatus" not in data:
                             data["migrationStatus"] = ""
                         data_list.append(data)
-                except json.JSONDecodeError as e:
-                    print(f"[WARN] Skipping invalid JSON file: {os.path.join(root, file)}, error: {e}")
+                except (json.JSONDecodeError, OSError) as e:
+                    print(f"[WARN] Skipping invalid file: {os.path.join(root, file)}, error: {e}")
                     continue
 
 # Create a DataFrame for analysis

@@ -24,8 +24,8 @@ for plugin_dir in os.listdir(root_dir):
                 try:
                     with open(os.path.join(metadata_dir, json_file) , "r") as f:
                         data = json.load(f)
-                except json.JSONDecodeError as e:
-                    print(f"[WARN] Skipping invalid JSON file: {os.path.join(metadata_dir, json_file)}, error: {e}")
+                except (json.JSONDecodeError, OSError) as e:
+                    print(f"[WARN] Skipping invalid file: {os.path.join(metadata_dir, json_file)}, error: {e}")
                     continue
                 data["timestamp"] = timestamp
                 migrations.append(data)
