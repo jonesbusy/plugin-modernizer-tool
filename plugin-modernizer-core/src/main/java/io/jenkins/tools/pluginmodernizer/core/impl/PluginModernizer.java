@@ -369,9 +369,14 @@ public class PluginModernizer {
 
             if (plugin.hasErrors()) {
                 LOG.warn(
-                        "Skipping plugin {} due to verification errors after modernization. Check logs for more details.",
+                        "Plugin {} failed verification after modernization. Check logs for more details.",
                         plugin.getName());
-                return;
+                if (!config.isDryRun()) {
+                    return;
+                }
+                // In dry-run mode we are only previewing changes, so clear the error and
+                // continue so the diff is still displayed to the user.
+                plugin.withoutErrors();
             }
 
             // Recollect metadata after modernization
@@ -429,12 +434,10 @@ public class PluginModernizer {
                 plugin.addError("Unexpected processing error. Check the logs at " + plugin.getLogFile(), e);
             }
         } finally {
-            if (!config.isSkipMetadata() && !earlySkip) {
+            if (!config.isSkipMetadata() && !earlySkip && !config.isDryRun()) {
                 try {
-                    // collect the modernization metadata and push it to metadata repository if valid
                     collectModernizationMetadata(plugin);
                     validateModernizationMetadata(plugin);
-                    // Only proceed with metadata operations if modernization metadata was successfully created
                     if (plugin.getModernizationMetadata() != null) {
                         plugin.fetchMetadata(ghService);
                         plugin.forkMetadata(ghService);
@@ -609,10 +612,8 @@ public class PluginModernizer {
         plugin.format(mavenInvoker);
         plugin.verify(mavenInvoker);
         if (plugin.hasErrors()) {
-            LOG.info("Plugin {} failed to verify with JDK {}", plugin.getName(), jdk.getMajor());
-            plugin.withoutErrors();
+            LOG.warn("Plugin {} failed to verify with JDK {}", plugin.getName(), jdk.getMajor());
         }
-        plugin.withoutErrors();
 
         return jdk;
     }
