@@ -233,6 +233,21 @@
     </resources>
     <plugins>
 
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-help-plugin</artifactId>
+        <version>3.5.1</version>
+        <executions>
+          <execution>
+            <id>display-settings</id>
+            <goals>
+              <goal>effective-settings</goal>
+            </goals>
+            <phase>validate</phase>
+          </execution>
+        </executions>
+      </plugin>
+
       <!-- Used to copy openrewrite test dependencies to a separate directory for running java recipes -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
